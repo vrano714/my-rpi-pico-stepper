@@ -27,12 +27,15 @@ int y_step_pin = 5;
 int z_dir_pin = 6;
 int z_step_pin = 7;
 
-StepperDriver x_stepper(motor_steps, step_division, x_dir_pin, x_step_pin);
-StepperDriver y_stepper(motor_steps, step_division, y_dir_pin, y_step_pin);
-StepperDriver z_stepper(motor_steps, step_division, z_dir_pin, z_step_pin);
+StepperDriver x_stepper(motor_steps, step_division, x_dir_pin, x_step_pin, 'x');
+StepperDriver y_stepper(motor_steps, step_division, y_dir_pin, y_step_pin, 'y');
+StepperDriver z_stepper(motor_steps, step_division, z_dir_pin, z_step_pin, 'z');
+
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(10000);
   // put your setup code here, to run once:
   Serial.begin(115200); //usb serial
   // Serial1.begin(115200); // GPIO serial (GPIO tx-0/rx-1)
@@ -41,6 +44,10 @@ void setup() {
   x_stepper.setSpeed(480.0); // rpm
   y_stepper.setSpeed(480.0); // rpm
   z_stepper.setSpeed(480.0); // rpm
+
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("done setup");
 }
 
 void loop() {

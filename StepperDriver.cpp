@@ -1,19 +1,20 @@
-#include "Arduino.h"
 #include "StepperDriver.h"
 
 
-StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin)
+StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin, char axis)
 {
   this->number_of_steps = number_of_steps;
   this->step_division = step_division;
   this->step_interval = 10000; // microseconds between pulse?
-  this->last_step_time = 0;
-  this->target_step_time1 = 0;
-  this->target_step_time2 = 0;
+
+  this->step_counter = 0;
+  this->steps_to_move = 0;
   
   // Arduino pins for the motor control connection:
   this->dir_pin = dir_pin;
   this->step_pin = step_pin;
+
+  this->axis = axis;
 
   // setup the pins on the microcontroller:
   pinMode(dir_pin, OUTPUT);
@@ -25,53 +26,14 @@ StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin
 */
 void StepperDriver::setSpeed(float rpm)
 {
-  // take the value as microseconds
+  if (rpm < 60){return;} // at least 1 rev/sec needed
+  Serial.print("set speed ");
+  Serial.print(rpm);
+  // useconds
   step_interval = 60000000L / (number_of_steps * rpm * step_division);
-}
+  Serial.print(" -> interval of ");
+  Serial.println(step_interval);
 
-
-
-/*
-  Moves the motor steps_to_move steps.  If the number is negative, 
-  the motor moves in the reverse direction.
- */
-void StepperDriver::step(long steps_to_move)
-{
-  steps_to_move *= step_division;
-  setDirection(steps_to_move);
-  last_step_time = micros();
-
-  // TODO: rewrite using interval timer
-  for (long i = abs(steps_to_move); i > 0; i--) {
-    move();
-  }
-}
-
-
-
-void StepperDriver::step(long steps_to_move, long steps_acc, long steps_dec)
-{
-  steps_to_move *= step_division;
-  steps_acc *= step_division;
-  steps_dec *= step_division;
-  setDirection(steps_to_move);
-  last_step_time = micros();
-
-  if (steps_acc > 0) {
-    for (long i = 1; i <= steps_acc; i++) {
-      dynamicMove( i , steps_acc );
-    }
-  }
-
-  for (long i = (abs(steps_to_move) - abs(steps_acc) - abs(steps_dec)); i > 0; i--) {
-    move();
-  }
-
-  if (steps_dec > 0) {
-    for (long i = (steps_dec - 1); i >= 0; i--) {
-      dynamicMove( i , steps_dec );
-    }
-  }
 }
 
 
@@ -88,43 +50,48 @@ void StepperDriver::setDirection(long steps_to_move)
 
 
 
-void StepperDriver::move()
+/*
+  Moves the motor steps_to_move steps.  If the number is negative, 
+  the motor moves in the reverse direction.
+ */
+void StepperDriver::step(long steps)
 {
-  digitalWrite(step_pin, HIGH);
-  moveInterval(step_interval);
+    digitalWrite(LED_BUILTIN, LOW);
+  if (timer){
+    cancel_repeating_timer(timer);
+    delete timer;
+    Serial.println("clear old timer");
+  }
+  timer = new repeating_timer_t;
+  timer->user_data = (void *)this;
+
+  steps *= step_division;
+  steps_to_move = steps;
+  Serial.printf("total call count: %d (interval %d us)\n", steps_to_move, step_interval);
+  setDirection(steps_to_move);
+
+  step_counter = 0;
+
+  add_repeating_timer_us(-1*(long)step_interval, move, (void *)this, timer);
 }
 
 
 
-void StepperDriver::dynamicMove(int s1, int s2)
+bool StepperDriver::move(repeating_timer_t *t)
 {
-  digitalWrite(step_pin, HIGH);
-  double r1 = (double)s1 / (double)s2;
-  double r2 = 0.1 + 0.2*r1 + 2.2*r1*r1 - 1.5*r1*r1*r1;
-  moveInterval( (unsigned long)(step_interval / r2) );
-}
+  StepperDriver *_this = reinterpret_cast<StepperDriver *>(t->user_data);
 
-
-
-void StepperDriver::moveInterval(unsigned long target_delay)
-{
-  target_step_time1 = last_step_time + (target_delay / 2);
-  target_step_time2 = last_step_time + target_delay;
-
-  if (target_step_time1 >= last_step_time) {
-    while (micros() < target_step_time1) {} // this blocks!
-  }
-  else {
-    while ((long)(micros()) < (long)target_step_time1) {} // this blocks!
+  digitalWrite(_this->step_pin, HIGH);
+  // delay millisec
+  sleep_us((_this->step_interval)>>1); // 1bit right shift- > half the value
+  digitalWrite(_this->step_pin, LOW);
+  (_this->step_counter)++;
+  if (_this->step_counter >= _this->steps_to_move) {
+    // cancel timer
+    cancel_repeating_timer(t);
+    Serial.printf("%c axis - count finished %d\n", _this->axis, _this->step_counter);
+    digitalWrite(LED_BUILTIN, HIGH);
   }
 
-  digitalWrite(step_pin, LOW);
-
-  if (target_step_time2 >= last_step_time) {
-    while (micros() < target_step_time2) {}
-  }
-  else {
-    while ((long)(micros()) < (long)target_step_time2) {}
-  }
-  last_step_time = micros();
+  return true;
 }
