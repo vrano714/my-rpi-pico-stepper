@@ -16,9 +16,16 @@ StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin
 
   this->axis = axis;
 
+  this->is_timer_active = false;
+
   // setup the pins on the microcontroller:
   pinMode(dir_pin, OUTPUT);
   pinMode(step_pin, OUTPUT);
+}
+
+bool StepperDriver::isTimerActive()
+{
+  return this->is_timer_active;
 }
 
 /*
@@ -61,6 +68,7 @@ void StepperDriver::step(long steps)
     cancel_repeating_timer(timer);
     delete timer;
     Serial.println("clear old timer");
+    is_timer_active = false;
   }
   timer = new repeating_timer_t;
   timer->user_data = (void *)this;
@@ -73,6 +81,7 @@ void StepperDriver::step(long steps)
   step_counter = 0;
 
   add_repeating_timer_us(-1*(long)step_interval, move, (void *)this, timer);
+  is_timer_active = true;
 }
 
 
@@ -91,6 +100,7 @@ bool StepperDriver::move(repeating_timer_t *t)
     cancel_repeating_timer(t);
     Serial.printf("%c axis - count finished %d\n", _this->axis, _this->step_counter);
     digitalWrite(LED_BUILTIN, HIGH);
+    _this->is_timer_active = false;
   }
 
   return true;

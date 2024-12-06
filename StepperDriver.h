@@ -14,6 +14,8 @@ class StepperDriver {
 
     // mover method:
     void step(long steps_to_move);
+    
+    bool isTimerActive();
 
   private:
     void setDirection(long steps_to_move);
@@ -28,11 +30,12 @@ class StepperDriver {
     long steps_to_move;
 
     char axis;
+
+    bool is_timer_active;
     
     // motor pin numbers:
     int dir_pin;
-    int step_pin;
-          
+    int step_pin;  
 };
 
 #endif
