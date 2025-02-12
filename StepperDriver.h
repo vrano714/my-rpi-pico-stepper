@@ -14,7 +14,9 @@ class StepperDriver {
 
     // mover method:
     void step(long steps_to_move);
-    
+
+    void cancelStep();
+
     bool isTimerActive();
 
   private:
@@ -30,6 +32,8 @@ class StepperDriver {
     long steps_to_move;
 
     char axis;
+
+    bool pin_state;
 
     bool is_timer_active;
     
