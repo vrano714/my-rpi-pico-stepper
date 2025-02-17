@@ -7,7 +7,9 @@
 class StepperDriver {
   public:
     // constructors:
-    StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin, char axis);
+    StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin, int min_sensor_pin, int max_sensor_pin, char axis);
+
+    void initMinMaxSensors();
 
     // speed setter method:
     void setSpeed(float rpm);
@@ -39,7 +41,11 @@ class StepperDriver {
     
     // motor pin numbers:
     int dir_pin;
-    int step_pin;  
+    int step_pin;
+
+    // sensor pin numbers
+    int min_sensor_pin;
+    int max_sensor_pin;
 };
 
 #endif

@@ -2,7 +2,7 @@
 
 
 
-StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin, char axis)
+StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin, int step_pin, int min_sensor_pin, int max_sensor_pin, char axis)
 {
   this->number_of_steps = number_of_steps;
   this->step_division = step_division;
@@ -14,6 +14,9 @@ StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin
   // Arduino pins for the motor control connection:
   this->dir_pin = dir_pin;
   this->step_pin = step_pin;
+
+  this->min_sensor_pin = min_sensor_pin;
+  this->max_sensor_pin = max_sensor_pin;
 
   this->axis = axis;
 
@@ -31,6 +34,14 @@ StepperDriver::StepperDriver(int number_of_steps, int step_division, int dir_pin
 bool StepperDriver::isTimerActive()
 {
   return this->is_timer_active;
+}
+
+
+
+void StepperDriver::initMinMaxSensors()
+{
+  pinMode(this->min_sensor_pin, INPUT);
+  pinMode(this->max_sensor_pin, INPUT);
 }
 
 
@@ -84,6 +95,13 @@ void StepperDriver::step(long steps)
   steps_to_move = steps;
   Serial.printf("total call count: %d (interval %d us)\n", steps_to_move, step_interval);
   setDirection(steps_to_move);
+  // read min/max sensor state and decide move or not
+  if (steps_to_move > 0 && digitalRead(max_sensor_pin) == LOW) {
+    return; // if max sensor is active (motor already at max end), avoid move +
+  }
+  if (steps_to_move < 0 && digitalRead(min_sensor_pin) == LOW) {
+    return; // if min sensor is active (motor already at min end), avoid move -
+  }
 
   step_counter = 0;
 
