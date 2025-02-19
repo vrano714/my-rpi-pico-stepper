@@ -16,6 +16,7 @@
 
 #include <FastLED.h>
 #define NUM_LEDS 30
+// LED data pin
 #define DATA_PIN 28
 CRGB leds[NUM_LEDS];
 
@@ -50,16 +51,6 @@ StepperDriver x_stepper(motor_steps, step_division, x_dir_pin, x_step_pin, x_min
 StepperDriver y_stepper(motor_steps, step_division, y_dir_pin, y_step_pin, y_min_sensor, y_max_sensor, 'y');
 StepperDriver z_stepper(motor_steps, step_division, z_dir_pin, z_step_pin, z_min_sensor, z_max_sensor, 'z');
 
-void cancelX(){
-  x_stepper.cancelStep();
-}
-void cancelY(){
-  y_stepper.cancelStep();
-}
-void cancelZ(){
-  z_stepper.cancelStep();
-}
-
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
@@ -67,16 +58,6 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200); //usb serial
   // Serial1.begin(115200); // GPIO serial (GPIO tx-0/rx-1)
-
-  // register move cancel function with limit sensor
-  // When sensor becomes active, voltage should change to LOW
-  // FIXME to avoid "invalid use of non-static member function", I made cancel(X|Y|Z) func, any solution?
-  attachInterrupt(x_min_sensor, cancelX, FALLING);
-  attachInterrupt(x_max_sensor, cancelX, FALLING);
-  attachInterrupt(y_min_sensor, cancelY, FALLING);
-  attachInterrupt(y_max_sensor, cancelY, FALLING);
-  attachInterrupt(z_min_sensor, cancelZ, FALLING);
-  attachInterrupt(z_max_sensor, cancelZ, FALLING);
 
   x_stepper.initMinMaxSensors();
   y_stepper.initMinMaxSensors();

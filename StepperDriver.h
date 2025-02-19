@@ -32,6 +32,7 @@ class StepperDriver {
     repeating_timer_t *timer;
     int step_counter;
     long steps_to_move;
+    bool moveDir;
 
     char axis;
 

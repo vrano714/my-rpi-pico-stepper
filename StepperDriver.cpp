@@ -40,8 +40,11 @@ bool StepperDriver::isTimerActive()
 
 void StepperDriver::initMinMaxSensors()
 {
-  pinMode(this->min_sensor_pin, INPUT);
-  pinMode(this->max_sensor_pin, INPUT);
+  // INPUT ? INPUT_PULLUP?
+  // pinMode(this->min_sensor_pin, INPUT);
+  // pinMode(this->max_sensor_pin, INPUT);
+  pinMode(this->min_sensor_pin, INPUT_PULLUP);
+  pinMode(this->max_sensor_pin, INPUT_PULLUP);
 }
 
 
@@ -63,9 +66,11 @@ void StepperDriver::setDirection(long steps_to_move)
 {
   if (steps_to_move > 0) {
     digitalWrite(dir_pin, HIGH);
+    moveDir = true;
   }
   else {
     digitalWrite(dir_pin, LOW);
+    moveDir = false;
   }
 }
 
@@ -94,12 +99,14 @@ void StepperDriver::step(long steps)
   steps *= 2; // timer will trigger 2x (because it uses toggle)
   steps_to_move = steps;
   Serial.printf("total call count: %d (interval %d us)\n", steps_to_move, step_interval);
-  setDirection(steps_to_move);
+  setDirection(steps_to_move); // moveDir=true -> PLUS, false -> MINUS
   // read min/max sensor state and decide move or not
-  if (steps_to_move > 0 && digitalRead(max_sensor_pin) == LOW) {
+  if (moveDir && digitalRead(max_sensor_pin) == LOW) {
+    Serial.printf("CANNOT MOVE ABOVE MAX\n");
     return; // if max sensor is active (motor already at max end), avoid move +
   }
-  if (steps_to_move < 0 && digitalRead(min_sensor_pin) == LOW) {
+  if (!moveDir && digitalRead(min_sensor_pin) == LOW) {
+    Serial.printf("CANNOT MOVE BELOW MIN\n");
     return; // if min sensor is active (motor already at min end), avoid move -
   }
 
@@ -117,6 +124,15 @@ bool StepperDriver::move(repeating_timer_t *t)
 {
   StepperDriver *_this = reinterpret_cast<StepperDriver *>(t->user_data);
 
+  if (_this->moveDir && digitalRead(_this->max_sensor_pin) == LOW) {
+    _this->cancelStep();
+    Serial.printf("MAX LIMIT HIT! at %d\n", _this->step_counter);
+  }
+  if (!(_this->moveDir) && digitalRead(_this->min_sensor_pin) == LOW) {
+    _this->cancelStep();
+    Serial.printf("MIN LIMIT HIT! at %d\n", _this->step_counter);
+  }
+
   // toggle output
   digitalWrite(_this->step_pin, !(_this->pin_state));
   _this->pin_state = !(_this->pin_state); // update pin state
@@ -124,6 +140,7 @@ bool StepperDriver::move(repeating_timer_t *t)
   (_this->step_counter)++;
   if (_this->step_counter >= abs(_this->steps_to_move)) {
     Serial.printf("%c axis - count finished %d\n", _this->axis, _this->step_counter);
+    // TODO replace with cancelStep?
     _this->is_timer_active = false;
     digitalWrite(_this->step_pin, LOW); // reset pin state to low
     return false; // return false -> timer stops
