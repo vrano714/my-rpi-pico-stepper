@@ -21,6 +21,12 @@ class StepperDriver {
 
     bool isTimerActive();
 
+    void toggleIgnoreLimit();
+
+    void calibrate(int mm);
+
+    int getCurrentPos(bool is_percent);
+
   private:
     void setDirection(long steps_to_move);
 
@@ -31,8 +37,11 @@ class StepperDriver {
     unsigned long step_interval;
     repeating_timer_t *timer;
     int step_counter;
+    int current_pos;
+    int max_pos;
     long steps_to_move;
-    bool moveDir;
+    bool move_dir;
+    bool ignoreLimit;
 
     char axis;
 

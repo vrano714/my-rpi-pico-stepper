@@ -54,14 +54,10 @@ StepperDriver z_stepper(motor_steps, step_division, z_dir_pin, z_step_pin, z_min
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
-  delay(10000);
+  delay(3000);
   // put your setup code here, to run once:
   Serial.begin(115200); //usb serial
   // Serial1.begin(115200); // GPIO serial (GPIO tx-0/rx-1)
-
-  x_stepper.initMinMaxSensors();
-  y_stepper.initMinMaxSensors();
-  z_stepper.initMinMaxSensors();
 
   // set speed
   x_stepper.setSpeed(480.0); // rpm
@@ -70,7 +66,7 @@ void setup() {
 
   delay(500);
   digitalWrite(LED_BUILTIN, LOW);
-  Serial.println("done setup");
+  // Serial.println("done setup");
 
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   FastLED.setMaxPowerInMilliWatts(2000);
@@ -95,13 +91,11 @@ void loop() {
       leds[5] = CRGB::Black;
       leds[6] = CRGB::Black;
       status_led = false;
-      // Serial.printf("tick\n");
     } else {
       leds[4] = CRGB::Orange;
       leds[5] = CRGB::Orange;
       leds[6] = CRGB::Orange;
       status_led = true;
-      // Serial.printf("TOCK\n");
     }
   }
   if (Serial.available() > 0) {
@@ -111,17 +105,14 @@ void loop() {
     char* tmp = strtok((char*)incomingData.c_str(), ":");
     char cmd = tmp[0]; // tri-axis (x,y,z) or speed (s) or pause (p)
     int val = atoi(strtok(NULL, " ")); // command value
-    Serial.printf("input %c val %d\n", cmd, val);
+    // Serial.printf("input %c val %d\r\n", cmd, val);
 
     if (cmd == 'x') {
       x_stepper.step(val);
-      leds[0] = CRGB::Pink;FastLED.show();
     } else if (cmd == 'y') {
       y_stepper.step(val);
-      leds[1] = CRGB::Pink;FastLED.show();
     } else if (cmd == 'z') {
       z_stepper.step(val);
-      leds[2] = CRGB::Pink;FastLED.show();
     } else if (cmd == 's') { // speed
       x_stepper.setSpeed((float)val); // rpm
       y_stepper.setSpeed((float)val); // rpm
@@ -130,6 +121,24 @@ void loop() {
       x_stepper.cancelStep();
       y_stepper.cancelStep();
       z_stepper.cancelStep();
+    } else if (cmd == 'c') {
+      // calibrate
+      x_stepper.calibrate(val);
+      y_stepper.calibrate(val);
+      z_stepper.calibrate(val);
+    } else if (cmd == 'g') {
+      // get current position
+      // passing true -> percentage position
+      int xpos = x_stepper.getCurrentPos(val==1?true:false);
+      int ypos = y_stepper.getCurrentPos(val==1?true:false);
+      int zpos = z_stepper.getCurrentPos(val==1?true:false);
+      Serial.printf("%d,%d,%d\r\n", xpos, ypos, zpos);
+    } else if (cmd == 'r') { // reboot
+      rp2040.reboot(); // reboot
+    } else if (cmd == 'i') { // ignore limit sensor
+      x_stepper.toggleIgnoreLimit();
+      y_stepper.toggleIgnoreLimit();
+      z_stepper.toggleIgnoreLimit();
     }
   }
   // indicate stepper status in LED
