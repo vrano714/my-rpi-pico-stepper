@@ -134,7 +134,7 @@ void loop() {
       int zpos = z_stepper.getCurrentPos(val==1?true:false);
       Serial.printf("%d,%d,%d\r\n", xpos, ypos, zpos);
     } else if (cmd == 'r') { // reboot
-      rp2040.reboot(); // reboot
+      rp2040.reboot();
     } else if (cmd == 'i') { // ignore limit sensor
       x_stepper.toggleIgnoreLimit();
       y_stepper.toggleIgnoreLimit();
@@ -161,22 +161,22 @@ void loop() {
   if (digitalRead(y_min_sensor)==HIGH) {
     leds[10]=CRGB::Black;
   } else {
-    leds[10]=CRGB::Red;
+    leds[10]=CRGB::Green;
   }
   if (digitalRead(y_max_sensor)==HIGH) {
     leds[11]=CRGB::Black;
   } else {
-    leds[11]=CRGB::Red;
+    leds[11]=CRGB::Green;
   }
   if (digitalRead(z_min_sensor)==HIGH) {
     leds[12]=CRGB::Black;
   } else {
-    leds[12]=CRGB::Red;
+    leds[12]=CRGB::Blue;
   }
   if (digitalRead(z_max_sensor)==HIGH) {
     leds[13]=CRGB::Black;
   } else {
-    leds[13]=CRGB::Red;
+    leds[13]=CRGB::Blue;
   }
 
   FastLED.show();

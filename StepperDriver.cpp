@@ -89,11 +89,11 @@ void StepperDriver::setSpeed(float rpm)
 void StepperDriver::setDirection(long steps_to_move)
 {
   if (steps_to_move > 0) {
-    digitalWrite(dir_pin, HIGH);
+    digitalWrite(dir_pin, LOW);
     move_dir = true;
   }
   else {
-    digitalWrite(dir_pin, LOW);
+    digitalWrite(dir_pin, HIGH);
     move_dir = false;
   }
 }
@@ -112,7 +112,7 @@ void StepperDriver::cancelStep()
 }
 
 
-
+// mm is just for recognizing direction (0 for min, 100 for max, 50 for center)
 void StepperDriver::calibrate(int mm)
 {
   // move to zero
@@ -176,13 +176,13 @@ bool StepperDriver::move(repeating_timer_t *t)
   if (_this->move_dir && digitalRead(_this->max_sensor_pin) == LOW && !(_this->ignoreLimit)) {
     _this->cancelStep();
     _this->max_pos = _this->current_pos;
-    // Serial.printf("MAX LIMIT HIT! at %d\r\n", _this->step_counter);
+    // Serial.printf("%c MAX LIMIT HIT! at %d\r\n", _this->axis, _this->step_counter);
     return false;
   }
   if (!(_this->move_dir) && digitalRead(_this->min_sensor_pin) == LOW && !(_this->ignoreLimit)) {
     _this->cancelStep();
     _this->current_pos = 0;
-    // Serial.printf("MIN LIMIT HIT! at %d\r\n", _this->step_counter);
+    // Serial.printf("%c MIN LIMIT HIT! at %d\r\n", _this->axis, _this->step_counter);
     return false;
   }
 
