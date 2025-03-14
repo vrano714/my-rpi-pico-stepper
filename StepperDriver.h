@@ -17,11 +17,13 @@ class StepperDriver {
     // mover method:
     void step(long steps_to_move);
 
+    void to(int target_pos);
+
     void cancelStep();
 
     bool isTimerActive();
 
-    void toggleIgnoreLimit();
+    void setContinuousMode(bool continuous_mode);
 
     void calibrate(int mm);
 
@@ -31,6 +33,7 @@ class StepperDriver {
     void setDirection(long steps_to_move);
 
     static bool move(repeating_timer_t *t);
+    static bool moveContinuous(repeating_timer_t *t);
 
     int number_of_steps;
     int step_division;
@@ -39,9 +42,10 @@ class StepperDriver {
     int step_counter;
     int current_pos;
     int max_pos;
+    int target_pos;
     long steps_to_move;
     bool move_dir;
-    bool ignoreLimit;
+    bool is_continuous_mode;
 
     char axis;
 

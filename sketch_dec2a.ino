@@ -27,8 +27,8 @@ int motor_steps = 200; // motor has 200 steps/rev, meaning 1 step is 1.8deg
 int step_division = 8; // driver has 1600 pulse/rev, meaning 8 pulse/step
 
 // x axis
-int x_dir_pin = 2;
-int x_step_pin = 3;
+int x_dir_pin = 2; // connect to motor driver dir-
+int x_step_pin = 3; // connect to motor driver pu-
 // terminal sensor
 int x_min_sensor = 8;
 int x_max_sensor = 9;
@@ -99,46 +99,82 @@ void loop() {
     }
   }
   if (Serial.available() > 0) {
-    // incoming data like x:1000\n
     String incomingData = Serial.readStringUntil('\n');
+    // incomingData.replace("\r", "");
     incomingData.replace("\n", "");
-    char* tmp = strtok((char*)incomingData.c_str(), ":");
-    char cmd = tmp[0]; // tri-axis (x,y,z) or speed (s) or pause (p)
-    int val = atoi(strtok(NULL, " ")); // command value
-    // Serial.printf("input %c val %d\r\n", cmd, val);
-
-    if (cmd == 'x') {
-      x_stepper.step(val);
-    } else if (cmd == 'y') {
-      y_stepper.step(val);
-    } else if (cmd == 'z') {
-      z_stepper.step(val);
-    } else if (cmd == 's') { // speed
-      x_stepper.setSpeed((float)val); // rpm
-      y_stepper.setSpeed((float)val); // rpm
-      z_stepper.setSpeed((float)val); // rpm
+    // command is like: a x 100 (space separated, main command and sub/options)
+    char* cmdTmp = strtok((char*)incomingData.c_str(), " ");// main command
+    char cmd = (cmdTmp != NULL) ? cmdTmp[0]: '\0';
+    if (cmd == 'a') { // absolute
+      char* axisTmp = strtok(NULL, " ");
+      char axis = (axisTmp != NULL) ? axisTmp[0]: '\0';
+      int val = atoi(strtok(NULL, " "));
+      if (axis == 'x' || axis == 'a'){
+        x_stepper.setContinuousMode(true);
+        x_stepper.to(val);
+      }
+      if (axis == 'y' || axis == 'a'){
+        y_stepper.setContinuousMode(true);
+        y_stepper.to(val);
+      }
+      if (axis == 'z' || axis == 'a'){
+        z_stepper.setContinuousMode(true);
+        z_stepper.to(val);
+      }
+    } else if (cmd == 'r') { // relative
+      char* axisTmp = strtok(NULL, " ");
+      char axis = (axisTmp != NULL) ? axisTmp[0]: '\0';
+      int val = atoi(strtok(NULL, " "));
+      if (axis == 'x' || axis == 'a'){
+        x_stepper.step(val);
+      }
+      if (axis == 'y' || axis == 'a'){
+        y_stepper.step(val);
+      }
+      if (axis == 'z' || axis == 'a'){
+        z_stepper.step(val);
+      }
+    } else if (cmd == 's') { // set
+      char* subcmdTmp = strtok(NULL, " ");
+      char subcmd = (subcmdTmp != NULL) ? subcmdTmp[0]: '\0';
+      int val = atoi(strtok(NULL, " "));
+      if (subcmd == 's') {
+        x_stepper.setSpeed((float)val); // rpm
+        y_stepper.setSpeed((float)val); // rpm
+        z_stepper.setSpeed((float)val); // rpm
+      }
     } else if (cmd == 'p') { // pause
+      // no further command required
       x_stepper.cancelStep();
       y_stepper.cancelStep();
       z_stepper.cancelStep();
     } else if (cmd == 'c') {
       // calibrate
-      x_stepper.calibrate(val);
-      y_stepper.calibrate(val);
-      z_stepper.calibrate(val);
+      char* axisTmp = strtok(NULL, " ");
+      char axis = (axisTmp != NULL) ? axisTmp[0]: '\0';
+      int val = atoi(strtok(NULL, " "));
+      if (axis == 'x' || axis == 'a') {
+        x_stepper.calibrate(val);
+      }
+      if (axis == 'y' || axis == 'a') {
+        y_stepper.calibrate(val);
+      }
+      if (axis == 'z' || axis == 'a') {
+        z_stepper.calibrate(val);
+      } 
     } else if (cmd == 'g') {
+      char* subcmdTmp = strtok(NULL, " ");
+      char subcmd = (subcmdTmp != NULL) ? subcmdTmp[0]: '\0';
       // get current position
       // passing true -> percentage position
-      int xpos = x_stepper.getCurrentPos(val==1?true:false);
-      int ypos = y_stepper.getCurrentPos(val==1?true:false);
-      int zpos = z_stepper.getCurrentPos(val==1?true:false);
-      Serial.printf("%d,%d,%d\r\n", xpos, ypos, zpos);
-    } else if (cmd == 'r') { // reboot
+      int xpos = x_stepper.getCurrentPos(subcmd=='p');
+      int ypos = y_stepper.getCurrentPos(subcmd=='p');
+      int zpos = z_stepper.getCurrentPos(subcmd=='p');
+      // send back current position as JSON object
+      Serial.printf("{\"x\":%d,\"y\":%d,\"z\":%d}\r\n", xpos, ypos, zpos);
+    } else if (cmd == 'b') { // re'b'oot
+      // no further command required
       rp2040.reboot();
-    } else if (cmd == 'i') { // ignore limit sensor
-      x_stepper.toggleIgnoreLimit();
-      y_stepper.toggleIgnoreLimit();
-      z_stepper.toggleIgnoreLimit();
     }
   }
   // indicate stepper status in LED
